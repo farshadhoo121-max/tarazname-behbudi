@@ -1,0 +1,17 @@
+{
+  "name": "ترازنامه شخصی",
+  "short_name": "ترازنامه",
+  "description": "ابزار ثبت روزانه سفر بهبودی",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBF7F0",
+  "theme_color": "#1F4B44",
+  "icons": [
+    {"src":"icon-192.png","sizes":"192x192","type":"image/png"},
+    {"src":"icon-512.png","sizes":"512x512","type":"image/png"}
+  ]
+}
