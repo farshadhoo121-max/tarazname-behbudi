@@ -1603,5 +1603,38 @@ setActiveTab('home');
   };
 })();
 </script>
+  <style>
+  .install-chip{
+    position:fixed; left:14px; bottom:14px; z-index:9999;
+    background:#1F4B44; color:#fff; border-radius:30px; padding:11px 18px;
+    display:flex; align-items:center; gap:8px; box-shadow:0 12px 30px rgba(0,0,0,.35);
+    border:none; font-family:'Tahoma','Vazirmatn','Segoe UI',Arial,sans-serif;
+    font-size:12.5px; font-weight:700; cursor:pointer;
+  }
+</style>
+<button class="install-chip" id="install-chip-ext">📲 نصب برنامه</button>
+<script>
+(function(){
+  let deferredPrompt = null;
+  const chip = document.getElementById('install-chip-ext');
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferredPrompt = e;
+  });
+  window.addEventListener('appinstalled', function(){
+    deferredPrompt = null;
+    chip.style.display = 'none';
+  });
+  chip.onclick = async function(){
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      return;
+    }
+    alert('برای نصب:\n\n۱. سه‌نقطهٔ بالای Chrome رو بزن\n۲. گزینهٔ «Install app» یا «نصب برنامه» رو بزن');
+  };
+})();
+</script>
 </html>
 
