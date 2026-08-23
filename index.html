@@ -1556,4 +1556,52 @@ setActiveTab('home');
 })();
 </script>
 </body>
+  <style>
+  .install-banner{
+    position:fixed; left:14px; right:14px; bottom:14px; z-index:9999;
+    background:#1F4B44; color:#fff; border-radius:18px; padding:14px 16px;
+    display:flex; align-items:center; gap:10px; box-shadow:0 12px 30px rgba(0,0,0,.35);
+    transform:translateY(150%); transition:transform .35s cubic-bezier(.22,.8,.28,1);
+    font-family:'Tahoma','Vazirmatn','Segoe UI',Arial,sans-serif;
+  }
+  .install-banner.show{ transform:translateY(0); }
+  .install-banner-text{ flex:1; font-size:12.5px; line-height:1.7; }
+  .install-banner-text b{ display:block; font-size:13.5px; margin-bottom:2px; }
+  .install-banner-btn{ flex:0 0 auto; background:#D6A63A; color:#2a2108; border:none; border-radius:12px; padding:9px 14px; font-family:inherit; font-size:12.5px; font-weight:800; cursor:pointer; }
+  .install-banner-close{ flex:0 0 auto; background:rgba(255,255,255,.18); border:none; color:#fff; width:24px; height:24px; border-radius:8px; font-size:12px; cursor:pointer; }
+</style>
+<div class="install-banner" id="install-banner-ext">
+  <div style="font-size:22px;">📲</div>
+  <div class="install-banner-text"><b>نصب برنامه</b>برای دسترسی سریع‌تر، روی گوشی نصبش کن</div>
+  <button class="install-banner-btn" id="install-banner-ext-btn">نصب</button>
+  <button class="install-banner-close" id="install-banner-ext-close">✕</button>
+</div>
+<script>
+(function(){
+  let deferredPrompt = null;
+  const banner = document.getElementById('install-banner-ext');
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferredPrompt = e;
+    try{ if(!localStorage.getItem('tarazname:install-dismissed')) banner.classList.add('show'); }
+    catch(err){ banner.classList.add('show'); }
+  });
+  window.addEventListener('appinstalled', function(){
+    deferredPrompt = null;
+    banner.classList.remove('show');
+  });
+  document.getElementById('install-banner-ext-btn').onclick = async function(){
+    if(!deferredPrompt){ banner.classList.remove('show'); return; }
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    banner.classList.remove('show');
+  };
+  document.getElementById('install-banner-ext-close').onclick = function(){
+    banner.classList.remove('show');
+    try{ localStorage.setItem('tarazname:install-dismissed','1'); }catch(err){}
+  };
+})();
+</script>
 </html>
+
