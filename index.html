@@ -873,6 +873,18 @@ function generateId(){ return String(Math.floor(10000 + Math.random()*90000)); }
 async function createUserAccount(){
   const name = document.getElementById('user-name-input').value.trim();
   if(!name){ toast('اسمت رو بنویس'); return; }
+
+  /* اگه از قبل (سروری یا فقط-آفلاین) پروفایلی روی همین گوشی ذخیره شده،
+     همونو بازیابی کن؛ کد یکتای تازه نساز. این معمولاً وقتی پیش میاد که
+     بازیابی خودکار موقع بازکردن برنامه (initApp) به هر دلیلی جواب نداده
+     و کاربر دوباره فرم «شروع بهبودی» را زده — بدون این چک، هر بار یک
+     کد یکتای جدید ساخته می‌شد. */
+  const existingProfile = await loadMyProfile();
+  if(existingProfile){
+    await enterAsUser(existingProfile.id, existingProfile.name, existingProfile.share_code);
+    return;
+  }
+
   const user = await ensureAuth();
   if(!user) return;
 
@@ -1243,16 +1255,16 @@ function renderTodayItem(si, ii, item, locked){
   if(item.type==='toggle'){
     const val = state.todayAnswers[key];
     return `
-      <div class="qitem">
+      <div class="qitem" data-qkey="${key}">
         <div class="qtext">${item.t}</div>
         <div class="toggle-row">
-          <button class="toggle-btn ${val==='yes'?'on':''}" ${locked?'disabled':''} onclick="setTodayToggle('${key}','yes')">بله</button>
-          <button class="toggle-btn ${val==='no'?'on':''}" ${locked?'disabled':''} onclick="setTodayToggle('${key}','no')">خیر</button>
+          <button class="toggle-btn ${val==='yes'?'on':''}" ${locked?'disabled':''} data-val="yes" onclick="setTodayToggle('${key}','yes')">بله</button>
+          <button class="toggle-btn ${val==='no'?'on':''}" ${locked?'disabled':''} data-val="no" onclick="setTodayToggle('${key}','no')">خیر</button>
         </div>
       </div>`;
   }
   return `
-    <div class="qitem">
+    <div class="qitem" data-qkey="${key}">
       <div class="qtext">${item.t}</div>
       <textarea class="qinput" ${locked?'disabled':''} placeholder="لمس کنید و بنویسید" oninput="state.todayAnswers['${key}']=this.value; persistTodayDraft();">${state.todayAnswers[key]||''}</textarea>
     </div>`;
@@ -1266,7 +1278,18 @@ async function persistTodayDraft(){
 async function setTodayToggle(key, val){
   state.todayAnswers[key] = state.todayAnswers[key]===val ? undefined : val;
   await persistTodayDraft();
-  renderToday();
+  updateToggleUI(key, state.todayAnswers[key]);
+}
+/* Updates just the two toggle buttons for one question in-place, instead
+   of re-rendering the whole accordion list. Re-rendering used to collapse
+   every open accordion back to the first one and jump the scroll position
+   to the top — this fixes that without touching anything else on screen. */
+function updateToggleUI(key, val){
+  const qitem = document.querySelector(`.qitem[data-qkey="${key}"]`);
+  if(!qitem) return;
+  qitem.querySelectorAll('.toggle-btn').forEach(btn=>{
+    btn.classList.toggle('on', btn.dataset.val === val);
+  });
 }
 function toggleAccordion(i){
   document.getElementById('acc-'+i).classList.toggle('open');
@@ -1303,16 +1326,16 @@ function renderStep10Item(ii, item, locked){
   if(item.type==='toggle'){
     const val = state.step10Answers[key];
     return `
-      <div class="qitem">
+      <div class="qitem" data-qkey="${key}">
         <div class="qtext">${item.t}</div>
         <div class="toggle-row">
-          <button class="toggle-btn ${val==='yes'?'on':''}" ${locked?'disabled':''} onclick="setStep10Toggle('${key}','yes')">بله</button>
-          <button class="toggle-btn ${val==='no'?'on':''}" ${locked?'disabled':''} onclick="setStep10Toggle('${key}','no')">خیر</button>
+          <button class="toggle-btn ${val==='yes'?'on':''}" ${locked?'disabled':''} data-val="yes" onclick="setStep10Toggle('${key}','yes')">بله</button>
+          <button class="toggle-btn ${val==='no'?'on':''}" ${locked?'disabled':''} data-val="no" onclick="setStep10Toggle('${key}','no')">خیر</button>
         </div>
       </div>`;
   }
   return `
-    <div class="qitem">
+    <div class="qitem" data-qkey="${key}">
       <div class="qtext">${item.t}</div>
       <textarea class="qinput" ${locked?'disabled':''} placeholder="لمس کنید و بنویسید" oninput="state.step10Answers['${key}']=this.value; persistStep10Draft();">${state.step10Answers[key]||''}</textarea>
     </div>`;
@@ -1326,7 +1349,7 @@ async function persistStep10Draft(){
 async function setStep10Toggle(key, val){
   state.step10Answers[key] = state.step10Answers[key]===val ? undefined : val;
   await persistStep10Draft();
-  renderStep10();
+  updateToggleUI(key, state.step10Answers[key]);
 }
 
 /* Lock a whole day's record (called from Today / Step10 / day sheet) */
