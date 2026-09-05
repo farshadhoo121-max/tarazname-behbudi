@@ -313,6 +313,9 @@
     content:""; position:absolute; bottom:4px; width:5px; height:5px; border-radius:50%; background:var(--spring);
   }
   .day-cell.locked.clean::after{ background:#fff; }
+  .day-cell .comment-dot{
+    position:absolute; bottom:2px; left:3px; font-size:10px; line-height:1;
+  }
 
   /* ---------- Bottom sheet (day detail) ---------- */
   .sheet-overlay{ position:absolute; inset:0; background:rgba(20,17,14,.5); opacity:0; pointer-events:none; transition:opacity .25s ease; z-index:60; }
@@ -1043,8 +1046,22 @@ async function logout(){
   showSplashForm('role');
   closeMenu();
 }
-function shareCode(){
-  toast(`کد یکتای تو: ${state.shareCode} — این را برای راهنمایت بفرست`);
+async function shareCode(){
+  const text = `کد یکتای من در ترازنامه بهبودی: ${toFa(state.shareCode)}`;
+  /* اول تلاش برای باز کردن پنجره‌ی اشتراک‌گذاری بومی گوشی (که مستقیم
+     می‌شود به واتساپ/پیامک/تلگرام فرستاد)؛ اگر گوشی/مرورگر این قابلیت
+     را نداشت، به کپی‌کردن روی کلیپ‌بورد برمی‌گردیم. */
+  if(navigator.share){
+    try{ await navigator.share({ text }); return; }catch(e){ /* کاربر انصراف داد یا خطا داد؛ برو سراغ کپی */ }
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    try{
+      await navigator.clipboard.writeText(text);
+      toast(`✅ کد کپی شد: ${toFa(state.shareCode)} — حالا آن را برای راهنمایت پیست کن`);
+      return;
+    }catch(e){ /* کپی خودکار مجاز نبود؛ برو سراغ حالت دستی */ }
+  }
+  toast(`کد یکتای تو: ${toFa(state.shareCode)} — این را برای راهنمایت بفرست`);
 }
 
 /* Manual "try connecting again" — fixes the case where the app fell back
@@ -1508,6 +1525,15 @@ async function renderTracker(){
     const dayRecords = [];
     for(let d=1; d<=dim; d++) dayRecords.push(await getRecord(code, state.trackerYear, mi, d));
     const st = computeStats(dayRecords);
+    /* یک کوئری واحد برای فهمیدن کدام روزهای این ماه نظر راهنما دارند —
+       تا رهجو مجبور نباشد برای پیدا کردن نظر، همه‌ی روزها را حدسی باز
+       کند. */
+    const recordIds = dayRecords.map(r=>r.id).filter(Boolean);
+    let daysWithComments = new Set();
+    if(sb && !offlineMode && recordIds.length>0){
+      const { data } = await sb.from('comments').select('record_id').in('record_id', recordIds);
+      if(data) daysWithComments = new Set(data.map(c=>c.record_id));
+    }
 
     content.innerHTML = `
       ${offlineBannerHtml()}
@@ -1527,10 +1553,11 @@ async function renderTracker(){
           const filled = rec.locked || Object.keys(rec.tracker||{}).length>0;
           const clean = rec.tracker && rec.tracker.clean==='yes';
           const locked = rec.locked;
+          const hasComment = rec.id && daysWithComments.has(rec.id);
           if(state.role==='sponsor' && !locked){
             return `<div class="day-cell disabled">${toFa(day)}</div>`;
           }
-          return `<div class="day-cell ${filled?'filled':''} ${clean?'clean':''} ${locked?'locked':''}" onclick="openDaySheet(${mi},${day})">${toFa(day)}</div>`;
+          return `<div class="day-cell ${filled?'filled':''} ${clean?'clean':''} ${locked?'locked':''}" onclick="openDaySheet(${mi},${day})">${toFa(day)}${hasComment?'<span class="comment-dot">💬</span>':''}</div>`;
         }).join('')}
       </div>
     `;
